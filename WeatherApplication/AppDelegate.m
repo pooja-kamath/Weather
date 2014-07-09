@@ -7,7 +7,7 @@
 //
 
 #import "AppDelegate.h"
-
+@import NotificationCenter;
 @interface AppDelegate ()
             
 
@@ -18,8 +18,50 @@
 @synthesize managedObjectContext = _managedObjectContext;
 @synthesize managedObjectModel = _managedObjectModel;
 @synthesize persistentStoreCoordinator = _persistentStoreCoordinator;
+-(void) application:(UIApplication *)application performFetchWithCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
+    
+    NSLog(@"Background fetch started...");
+    
+    //---do background fetch here---
+    // You have up to 30 seconds to perform the fetch
+    
+    
+    NSURLConnection *connection=[NSURLConnection connectionWithRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"http://api.worldweatheronline.com/free/v1/weather.ashx?q=Bangalore&format=json&num_of_days=1&key=902ea458fc682bb8002393a4a159fc893d4ed6bb"]]delegate:self];
+    
+    
+    NSLog(@"Background fetch completed...");
+    completionHandler (UIBackgroundFetchResultNewData);
+}
+
+- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
+{
+    NSError *error;
+    NSDictionary *parsedObjects =  [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
+    NSData *today = [[[[[[parsedObjects valueForKey:@"data"] objectForKey:@"current_condition"] objectAtIndex:0] objectForKey:@"weatherDesc"] objectAtIndex:0] objectForKey:@"value"];
+    
+    
+    NSString *path=@"/Users/poojakamath/Desktop/WeatherApplication/Weather/Weather.txt";
+    //    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    //    path = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"weather.txt"];
+    
+    if (![[NSFileManager defaultManager] fileExistsAtPath:path])	//Does directory already exist?
+    {
+        [[NSFileManager defaultManager] createFileAtPath:path
+                                                contents:today
+                                              attributes:nil];
+    }
+    
+    
+    
+    NCWidgetController *widget= [NCWidgetController widgetController];
+    [widget setHasContent:YES forWidgetWithBundleIdentifier:@"SB.CurrentTime.CurrentWeather"];
+    
+    
+    
+}
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    [[UIApplication sharedApplication]setMinimumBackgroundFetchInterval:UIApplicationBackgroundFetchIntervalMinimum];
     // Override point for customization after application launch.
     return YES;
 }
